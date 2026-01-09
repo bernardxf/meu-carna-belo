@@ -64,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _filterEvents() {
     setState(() {
+      final now = DateTime.now();
       _filteredEvents = _syncManager.events.where((event) {
         final matchesSearch =
             event.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -82,6 +83,21 @@ class _HomeScreenState extends State<HomeScreen>
 
         return matchesSearch && matchesFilter;
       }).toList();
+
+      // Sort: upcoming events first (soonest first), then past events (most recent first)
+      _filteredEvents.sort((a, b) {
+        final aIsPast = a.dateTime.isBefore(now);
+        final bIsPast = b.dateTime.isBefore(now);
+
+        if (aIsPast && !bIsPast) return 1; // a is past, b is upcoming -> b first
+        if (!aIsPast && bIsPast) return -1; // a is upcoming, b is past -> a first
+        if (!aIsPast && !bIsPast) {
+          // Both upcoming: soonest first
+          return a.dateTime.compareTo(b.dateTime);
+        }
+        // Both past: most recent first
+        return b.dateTime.compareTo(a.dateTime);
+      });
     });
   }
 

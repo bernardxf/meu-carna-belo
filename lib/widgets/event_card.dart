@@ -12,24 +12,35 @@ class EventCard extends StatelessWidget {
     required this.onTap,
   });
 
+  bool get _isPastEvent {
+    final now = DateTime.now();
+    final eventEnd = event.dateTime.add(const Duration(hours: 6));
+    return eventEnd.isBefore(now);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: CarnivalTheme.cardGradient,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: CarnivalTheme.purple.withOpacity(0.2),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
+      child: Opacity(
+        opacity: _isPastEvent ? 0.5 : 1.0,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: _isPastEvent ? null : CarnivalTheme.cardGradient,
+            color: _isPastEvent ? Colors.grey[200] : null,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: _isPastEvent
+                    ? Colors.grey.withOpacity(0.2)
+                    : CarnivalTheme.purple.withOpacity(0.2),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
@@ -248,6 +259,7 @@ class EventCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

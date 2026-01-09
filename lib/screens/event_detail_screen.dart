@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/bloco_event.dart';
 import '../theme/carnival_theme.dart';
 
@@ -9,11 +10,35 @@ class EventDetailScreen extends StatelessWidget {
 
   const EventDetailScreen({super.key, required this.event});
 
+  String get _directionsUrl {
+    if (event.latitude != null && event.longitude != null) {
+      return 'https://www.google.com/maps/dir/?api=1&destination=${event.latitude},${event.longitude}';
+    }
+    final encodedAddress = Uri.encodeComponent(
+        '${event.address}, ${event.neighborhood}, Belo Horizonte, MG');
+    return 'https://www.google.com/maps/dir/?api=1&destination=$encodedAddress';
+  }
+
   Future<void> _openGoogleMaps() async {
-    final url = Uri.parse(event.googleMapsUrl);
+    final url = Uri.parse(_directionsUrl);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<void> _shareEvent() async {
+    final text = '''${event.name}
+
+${event.formattedDate} as ${event.formattedTime}
+${event.address}, ${event.neighborhood}
+
+${event.description}
+
+${event.ticketPrice ?? ''}
+
+Veja mais blocos no Meu Carna BH!''';
+
+    await Share.share(text);
   }
 
   Future<void> _openTicketUrl() async {
@@ -60,7 +85,16 @@ class EventDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Text('🎊', style: TextStyle(fontSize: 28)),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.share, color: Colors.white),
+                        onPressed: _shareEvent,
+                      ),
+                    ),
                   ],
                 ),
               ),
