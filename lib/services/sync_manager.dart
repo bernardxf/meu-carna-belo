@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/bloco_event.dart';
 import '../data/blocos_data.dart';
 import 'carnival_scraper.dart';
+import 'geocoding_service.dart';
 
 class SyncManager extends ChangeNotifier {
   static const String _eventsBoxName = 'carnival_events';
@@ -150,10 +151,13 @@ class SyncManager extends ChangeNotifier {
       final mergedEvents = _mergeEvents(scrapedEvents);
 
       if (mergedEvents.isNotEmpty) {
-        // Save to cache
-        await _saveEventsToCache(mergedEvents);
+        // Geocode events that don't have coordinates
+        final geocodedEvents = await _geocodeEventsWithoutCoordinates(mergedEvents);
 
-        _events = mergedEvents;
+        // Save to cache
+        await _saveEventsToCache(geocodedEvents);
+
+        _events = geocodedEvents;
         _events.sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
         // Update last sync time
@@ -184,7 +188,7 @@ class SyncManager extends ChangeNotifier {
   List<BlocoEvent> _mergeEvents(List<BlocoEvent> newEvents) {
     final Map<String, BlocoEvent> eventMap = {};
 
-    // Add existing events
+    // Add existing events (preserve their coordinates if they have them)
     for (final event in _events) {
       eventMap[event.id] = event;
     }
@@ -197,11 +201,80 @@ class SyncManager extends ChangeNotifier {
     }
 
     // Add/update with new events
+    // Preserve coordinates from existing events if new event doesn't have them
     for (final event in newEvents) {
-      eventMap[event.id] = event;
+      final existingEvent = eventMap[event.id];
+      if (existingEvent != null &&
+          existingEvent.latitude != null &&
+          existingEvent.longitude != null &&
+          (event.latitude == null || event.longitude == null)) {
+        // Keep existing coordinates
+        eventMap[event.id] = event.copyWith(
+          latitude: existingEvent.latitude,
+          longitude: existingEvent.longitude,
+        );
+      } else {
+        eventMap[event.id] = event;
+      }
     }
 
     return eventMap.values.toList();
+  }
+
+  /// Geocode events that don't have coordinates
+  Future<List<BlocoEvent>> _geocodeEventsWithoutCoordinates(
+    List<BlocoEvent> events,
+  ) async {
+    final List<BlocoEvent> geocodedEvents = [];
+    final List<BlocoEvent> eventsToGeocode = [];
+
+    // Separate events that need geocoding
+    for (final event in events) {
+      if (event.latitude == null || event.longitude == null) {
+        eventsToGeocode.add(event);
+      } else {
+        geocodedEvents.add(event);
+      }
+    }
+
+    // Geocode events that need coordinates
+    if (eventsToGeocode.isNotEmpty) {
+      print('Geocoding ${eventsToGeocode.length} events...');
+      
+      for (final event in eventsToGeocode) {
+        try {
+          // Build address string
+          final addressString = event.address.contains('Belo Horizonte')
+              ? event.address
+              : '${event.address}, ${event.neighborhood}, Belo Horizonte, MG';
+
+          final coordinates = await GeocodingService.geocodeAddress(addressString);
+          
+          if (coordinates != null) {
+            geocodedEvents.add(
+              event.copyWith(
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+              ),
+            );
+            print('Geocoded: ${event.name} -> ${coordinates.latitude}, ${coordinates.longitude}');
+          } else {
+            // Keep event without coordinates if geocoding fails
+            geocodedEvents.add(event);
+            print('Failed to geocode: ${event.name}');
+          }
+
+          // Small delay to avoid rate limiting
+          await Future.delayed(const Duration(milliseconds: 300));
+        } catch (e) {
+          print('Error geocoding ${event.name}: $e');
+          // Keep event without coordinates on error
+          geocodedEvents.add(event);
+        }
+      }
+    }
+
+    return geocodedEvents;
   }
 
   /// Save events to local cache
@@ -273,6 +346,33 @@ class SyncManager extends ChangeNotifier {
     _events.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     await _saveEventsToCache(_events);
     notifyListeners();
+  }
+
+  /// Geocode all events that don't have coordinates
+  /// This can be called manually to update coordinates for existing events
+  Future<void> geocodeEventsWithoutCoordinates() async {
+    if (_isSyncing) return;
+
+    _isSyncing = true;
+    _status = SyncStatus.syncing;
+    notifyListeners();
+
+    try {
+      final geocodedEvents = await _geocodeEventsWithoutCoordinates(_events);
+      
+      if (geocodedEvents.isNotEmpty) {
+        await _saveEventsToCache(geocodedEvents);
+        _events = geocodedEvents;
+        _events.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+        _status = SyncStatus.success;
+      }
+    } catch (e) {
+      _lastError = 'Erro ao geocodificar eventos: $e';
+      _status = SyncStatus.error;
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
   }
 
   @override

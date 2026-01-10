@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'screens/home_screen.dart';
 import 'theme/carnival_theme.dart';
 
@@ -79,11 +80,8 @@ class _SplashScreenState extends State<SplashScreen>
                 const HomeScreen(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: const Duration(milliseconds: 500),
           ),
         );
@@ -115,10 +113,7 @@ class _SplashScreenState extends State<SplashScreen>
                     scale: _scaleAnimation,
                     child: const Column(
                       children: [
-                        Text(
-                          '🎭',
-                          style: TextStyle(fontSize: 80),
-                        ),
+                        Text('🎭', style: TextStyle(fontSize: 80)),
                         SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -152,16 +147,6 @@ class _SplashScreenState extends State<SplashScreen>
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'BLOCOS DE RUA 2026',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
-                            letterSpacing: 4,
-                            fontWeight: FontWeight.w300,
                           ),
                         ),
                         const SizedBox(height: 32),

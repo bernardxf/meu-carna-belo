@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Background gradient - purple to pink -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6A1B9A"/>
+      <stop offset="50%" style="stop-color:#9C27B0"/>
+      <stop offset="100%" style="stop-color:#E91E63"/>
+    </linearGradient>
+    <!-- Gold gradient for mask -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="50%" style="stop-color:#FFA500"/>
+      <stop offset="100%" style="stop-color:#FFD700"/>
+    </linearGradient>
+    <!-- Feather gradients -->
+    <linearGradient id="featherPurple" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#9C27B0"/>
+      <stop offset="100%" style="stop-color:#E91E63"/>
+    </linearGradient>
+    <linearGradient id="featherYellow" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF9800"/>
+      <stop offset="100%" style="stop-color:#FFEB3B"/>
+    </linearGradient>
+    <linearGradient id="featherCyan" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#00838F"/>
+      <stop offset="100%" style="stop-color:#00BCD4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="url(#bgGradient)"/>
+
+  <!-- Decorative confetti dots -->
+  <circle cx="150" cy="200" r="25" fill="#FFEB3B" opacity="0.8"/>
+  <circle cx="874" cy="180" r="20" fill="#00BCD4" opacity="0.8"/>
+  <circle cx="120" cy="750" r="18" fill="#FF9800" opacity="0.8"/>
+  <circle cx="900" cy="800" r="22" fill="#4CAF50" opacity="0.8"/>
+  <circle cx="200" cy="450" r="15" fill="#FFEB3B" opacity="0.6"/>
+  <circle cx="824" cy="500" r="17" fill="#E91E63" opacity="0.6"/>
+
+  <!-- Carnival mask - main shape -->
+  <g transform="translate(512, 520)">
+    <!-- Feathers on top -->
+    <!-- Left feather group -->
+    <ellipse cx="-200" cy="-180" rx="35" ry="120" fill="url(#featherPurple)" transform="rotate(-30, -200, -180)"/>
+    <ellipse cx="-140" cy="-200" rx="30" ry="110" fill="url(#featherYellow)" transform="rotate(-15, -140, -200)"/>
+    <ellipse cx="-80" cy="-210" rx="28" ry="100" fill="url(#featherCyan)" transform="rotate(-5, -80, -210)"/>
+
+    <!-- Center feather -->
+    <ellipse cx="0" cy="-220" rx="32" ry="115" fill="url(#featherYellow)"/>
+
+    <!-- Right feather group -->
+    <ellipse cx="80" cy="-210" rx="28" ry="100" fill="url(#featherCyan)" transform="rotate(5, 80, -210)"/>
+    <ellipse cx="140" cy="-200" rx="30" ry="110" fill="url(#featherYellow)" transform="rotate(15, 140, -200)"/>
+    <ellipse cx="200" cy="-180" rx="35" ry="120" fill="url(#featherPurple)" transform="rotate(30, 200, -180)"/>
+
+    <!-- Mask body -->
+    <path d="M-280,0
+             Q-300,-80 -250,-100
+             Q-150,-130 0,-140
+             Q150,-130 250,-100
+             Q300,-80 280,0
+             Q250,80 200,100
+             Q100,120 0,110
+             Q-100,120 -200,100
+             Q-250,80 -280,0 Z"
+          fill="url(#goldGradient)"
+          stroke="#B8860B"
+          stroke-width="8"/>
+
+    <!-- Left eye hole -->
+    <ellipse cx="-120" cy="-10" rx="70" ry="50" fill="#6A1B9A"/>
+    <ellipse cx="-120" cy="-10" rx="60" ry="40" fill="#4A148C"/>
+
+    <!-- Right eye hole -->
+    <ellipse cx="120" cy="-10" rx="70" ry="50" fill="#6A1B9A"/>
+    <ellipse cx="120" cy="-10" rx="60" ry="40" fill="#4A148C"/>
+
+    <!-- Decorative gems on mask -->
+    <circle cx="0" cy="-80" r="25" fill="#E91E63"/>
+    <circle cx="0" cy="-80" r="18" fill="#FF4081"/>
+    <circle cx="0" cy="-80" r="8" fill="white" opacity="0.6"/>
+
+    <!-- Small gems -->
+    <circle cx="-180" cy="-50" r="15" fill="#00BCD4"/>
+    <circle cx="-180" cy="-50" r="8" fill="white" opacity="0.5"/>
+    <circle cx="180" cy="-50" r="15" fill="#00BCD4"/>
+    <circle cx="180" cy="-50" r="8" fill="white" opacity="0.5"/>
+
+    <!-- Gold trim details -->
+    <path d="M-220,-70 Q-170,-90 -120,-70" fill="none" stroke="#FFD700" stroke-width="6"/>
+    <path d="M120,-70 Q170,-90 220,-70" fill="none" stroke="#FFD700" stroke-width="6"/>
+  </g>
+
+  <!-- More confetti for festive look -->
+  <rect x="300" y="150" width="20" height="20" fill="#FFEB3B" transform="rotate(45, 310, 160)" opacity="0.7"/>
+  <rect x="700" y="170" width="18" height="18" fill="#4CAF50" transform="rotate(30, 709, 179)" opacity="0.7"/>
+  <rect x="180" cy="600" width="16" height="16" fill="#FF9800" transform="rotate(60, 188, 608)" opacity="0.7"/>
+  <rect x="850" cy="650" width="15" height="15" fill="#E91E63" transform="rotate(15, 857, 657)" opacity="0.7"/>
+</svg>

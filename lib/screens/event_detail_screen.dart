@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../models/bloco_event.dart';
 import '../theme/carnival_theme.dart';
 
@@ -15,7 +16,8 @@ class EventDetailScreen extends StatelessWidget {
       return 'https://www.google.com/maps/dir/?api=1&destination=${event.latitude},${event.longitude}';
     }
     final encodedAddress = Uri.encodeComponent(
-        '${event.address}, ${event.neighborhood}, Belo Horizonte, MG');
+      '${event.address}, ${event.neighborhood}, Belo Horizonte, MG',
+    );
     return 'https://www.google.com/maps/dir/?api=1&destination=$encodedAddress';
   }
 
@@ -27,7 +29,8 @@ class EventDetailScreen extends StatelessWidget {
   }
 
   Future<void> _shareEvent() async {
-    final text = '''${event.name}
+    final text =
+        '''${event.name}
 
 ${event.formattedDate} as ${event.formattedTime}
 ${event.address}, ${event.neighborhood}
@@ -294,16 +297,15 @@ Veja mais blocos no Meu Carna BH!''';
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      event.ticketPrice!.contains('Gratuita')
-                                          ? CarnivalTheme.green.withOpacity(0.1)
-                                          : CarnivalTheme.gold.withOpacity(0.1),
+                                  color: event.ticketPrice!.contains('Gratuita')
+                                      ? CarnivalTheme.green.withOpacity(0.1)
+                                      : CarnivalTheme.gold.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(15),
                                   border: Border.all(
                                     color:
                                         event.ticketPrice!.contains('Gratuita')
-                                            ? CarnivalTheme.green
-                                            : CarnivalTheme.gold,
+                                        ? CarnivalTheme.green
+                                        : CarnivalTheme.gold,
                                   ),
                                 ),
                                 child: Text(
@@ -313,8 +315,8 @@ Veja mais blocos no Meu Carna BH!''';
                                     fontWeight: FontWeight.bold,
                                     color:
                                         event.ticketPrice!.contains('Gratuita')
-                                            ? CarnivalTheme.green
-                                            : CarnivalTheme.gold,
+                                        ? CarnivalTheme.green
+                                        : CarnivalTheme.gold,
                                   ),
                                 ),
                               ),
@@ -328,28 +330,31 @@ Veja mais blocos no Meu Carna BH!''';
                               child: Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children:
-                                    event.tags.asMap().entries.map((entry) {
+                                children: event.tags.asMap().entries.map((
+                                  entry,
+                                ) {
                                   return Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 8,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: CarnivalTheme.getTagColor(entry.key)
-                                          .withOpacity(0.15),
+                                      color: CarnivalTheme.getTagColor(
+                                        entry.key,
+                                      ).withOpacity(0.15),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color:
-                                            CarnivalTheme.getTagColor(entry.key)
-                                                .withOpacity(0.4),
+                                        color: CarnivalTheme.getTagColor(
+                                          entry.key,
+                                        ).withOpacity(0.4),
                                       ),
                                     ),
                                     child: Text(
                                       entry.value,
                                       style: TextStyle(
-                                        color:
-                                            CarnivalTheme.getTagColor(entry.key),
+                                        color: CarnivalTheme.getTagColor(
+                                          entry.key,
+                                        ),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -392,22 +397,6 @@ Veja mais blocos no Meu Carna BH!''';
                             ],
                           ),
                           const SizedBox(height: 24),
-                          // Fun decoration
-                          Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Text('🎺', style: TextStyle(fontSize: 24)),
-                                SizedBox(width: 8),
-                                Text('🥁', style: TextStyle(fontSize: 24)),
-                                SizedBox(width: 8),
-                                Text('🎷', style: TextStyle(fontSize: 24)),
-                                SizedBox(width: 8),
-                                Text('🎤', style: TextStyle(fontSize: 24)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
@@ -437,11 +426,7 @@ Veja mais blocos no Meu Carna BH!''';
                 color: CarnivalTheme.purple.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: CarnivalTheme.purple,
-                size: 20,
-              ),
+              child: Icon(icon, color: CarnivalTheme.purple, size: 20),
             ),
             const SizedBox(width: 12),
             Text(
@@ -455,10 +440,7 @@ Veja mais blocos no Meu Carna BH!''';
           ],
         ),
         const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.only(left: 44),
-          child: child,
-        ),
+        Padding(padding: const EdgeInsets.only(left: 44), child: child),
       ],
     );
   }

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../models/bloco_event.dart';
+import '../services/location_service.dart';
+import '../services/sync_manager.dart';
 import '../theme/carnival_theme.dart';
 import '../widgets/event_card.dart';
-import '../services/sync_manager.dart';
+import '../widgets/sync_modal.dart';
 import 'event_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,10 +22,14 @@ class _HomeScreenState extends State<HomeScreen>
   final SyncManager _syncManager = SyncManager();
   List<BlocoEvent> _filteredEvents = [];
   String _searchQuery = '';
-  String _selectedFilter = 'Todos';
+  String _selectedFilter = 'Hoje';
   late AnimationController _animationController;
 
+  Position? _currentPosition;
+  Map<String, String> _eventDistances = {};
+
   final List<String> _filters = [
+    'Hoje',
     'Todos',
     'Gratuito',
     'Axe',
@@ -40,12 +48,49 @@ class _HomeScreenState extends State<HomeScreen>
 
     _syncManager.addListener(_onSyncUpdate);
     _initializeData();
+    _getCurrentLocation();
   }
 
   Future<void> _initializeData() async {
     await _syncManager.initialize();
     _filterEvents();
     _animationController.forward();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      final position = await LocationService.getCurrentPosition();
+      if (position != null && mounted) {
+        setState(() {
+          _currentPosition = position;
+          _calculateDistances();
+        });
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+    }
+  }
+
+  void _calculateDistances() {
+    if (_currentPosition == null) return;
+
+    final distances = <String, String>{};
+    for (var event in _filteredEvents) {
+      if (event.latitude != null && event.longitude != null) {
+        final distance = LocationService.calculateDistance(
+          event.latitude,
+          event.longitude,
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+        );
+        if (distance != null) {
+          distances[event.id] = LocationService.formatDistance(distance);
+        }
+      }
+    }
+    setState(() {
+      _eventDistances = distances;
+    });
   }
 
   void _onSyncUpdate() {
@@ -68,18 +113,26 @@ class _HomeScreenState extends State<HomeScreen>
       _filteredEvents = _syncManager.events.where((event) {
         final matchesSearch =
             event.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                event.neighborhood
-                    .toLowerCase()
-                    .contains(_searchQuery.toLowerCase()) ||
-                event.description
-                    .toLowerCase()
-                    .contains(_searchQuery.toLowerCase());
+            event.neighborhood.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            event.description.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
 
-        final matchesFilter = _selectedFilter == 'Todos' ||
+        final isToday =
+            event.dateTime.year == now.year &&
+            event.dateTime.month == now.month &&
+            event.dateTime.day == now.day;
+
+        final matchesFilter =
+            _selectedFilter == 'Todos' ||
+            (_selectedFilter == 'Hoje' && isToday) ||
             (_selectedFilter == 'Gratuito' &&
                 event.ticketPrice?.contains('Gratuita') == true) ||
-            event.tags
-                .any((tag) => tag.toLowerCase() == _selectedFilter.toLowerCase());
+            event.tags.any(
+              (tag) => tag.toLowerCase() == _selectedFilter.toLowerCase(),
+            );
 
         return matchesSearch && matchesFilter;
       }).toList();
@@ -89,8 +142,10 @@ class _HomeScreenState extends State<HomeScreen>
         final aIsPast = a.dateTime.isBefore(now);
         final bIsPast = b.dateTime.isBefore(now);
 
-        if (aIsPast && !bIsPast) return 1; // a is past, b is upcoming -> b first
-        if (!aIsPast && bIsPast) return -1; // a is upcoming, b is past -> a first
+        if (aIsPast && !bIsPast)
+          return 1; // a is past, b is upcoming -> b first
+        if (!aIsPast && bIsPast)
+          return -1; // a is upcoming, b is past -> a first
         if (!aIsPast && !bIsPast) {
           // Both upcoming: soonest first
           return a.dateTime.compareTo(b.dateTime);
@@ -99,12 +154,18 @@ class _HomeScreenState extends State<HomeScreen>
         return b.dateTime.compareTo(a.dateTime);
       });
     });
+
+    // Recalculate distances after filtering
+    if (_currentPosition != null) {
+      _calculateDistances();
+    }
   }
 
   Future<void> _refreshData() async {
     await _syncManager.syncEvents(force: true);
     _animationController.reset();
     _animationController.forward();
+    await _getCurrentLocation();
   }
 
   void _showSyncInfo() {
@@ -142,11 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
                   gradient: CarnivalTheme.backgroundGradient,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(
-                  Icons.sync,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                child: const Icon(Icons.sync, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -163,10 +220,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     Text(
                       'Atualiza a cada ${_syncManager.syncIntervalHours}h',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
                 ),
@@ -235,7 +289,9 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         )
                       : const Icon(Icons.refresh),
-                  label: Text(_syncManager.isSyncing ? 'Sincronizando...' : 'Sincronizar'),
+                  label: Text(
+                    _syncManager.isSyncing ? 'Sincronizando...' : 'Sincronizar',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CarnivalTheme.purple,
                     foregroundColor: Colors.white,
@@ -251,10 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 16),
           Text(
             'Fonte: Vou Pro Bloco 2026',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey[500], fontSize: 12),
             textAlign: TextAlign.center,
           ),
         ],
@@ -262,8 +315,12 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value,
-      {bool isError = false}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    bool isError = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -276,10 +333,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(width: 12),
           Text(
             '$label:',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -298,284 +352,285 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  bool get _showSyncModal {
+    return _syncManager.status == SyncStatus.initializing ||
+        _syncManager.isSyncing;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: CarnivalTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // Title with sync button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            decoration: const BoxDecoration(
+              gradient: CarnivalTheme.backgroundGradient,
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       children: [
-                        const Text(
-                          '🎭',
-                          style: TextStyle(fontSize: 28),
+                        // Title with sync button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('🎭', style: TextStyle(fontSize: 28)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Meu Carna BH',
+                              style: GoogleFonts.pacifico(
+                                fontSize: 32,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    offset: const Offset(2, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('🎉', style: TextStyle(fontSize: 28)),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Meu Carna BH',
-                          style: GoogleFonts.pacifico(
-                            fontSize: 32,
+                        const SizedBox(height: 4),
+                        // Sync status row
+                        GestureDetector(
+                          onTap: _showSyncInfo,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_syncManager.isSyncing)
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                else
+                                  Icon(
+                                    _syncManager.status == SyncStatus.error
+                                        ? Icons.error_outline
+                                        : _syncManager.status ==
+                                              SyncStatus.offline
+                                        ? Icons.cloud_off
+                                        : Icons.cloud_done,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _syncManager.isSyncing
+                                      ? 'Sincronizando...'
+                                      : _syncManager.lastSyncFormatted,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 14,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Search bar
+                        Container(
+                          decoration: BoxDecoration(
                             color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                offset: const Offset(2, 2),
-                                blurRadius: 4,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
+                          child: TextField(
+                            onChanged: (value) {
+                              _searchQuery = value;
+                              _filterEvents();
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Buscar blocos...',
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: CarnivalTheme.purple.withOpacity(0.6),
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  Icons.refresh,
+                                  color: _syncManager.isSyncing
+                                      ? Colors.grey[300]
+                                      : CarnivalTheme.purple.withOpacity(0.6),
+                                ),
+                                onPressed: _syncManager.isSyncing
+                                    ? null
+                                    : _refreshData,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 15,
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '🎉',
-                          style: TextStyle(fontSize: 28),
+                        const SizedBox(height: 16),
+                        // Filter chips
+                        SizedBox(
+                          height: 40,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _filters.length,
+                            itemBuilder: (context, index) {
+                              final filter = _filters[index];
+                              final isSelected = _selectedFilter == filter;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text(filter),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    _selectedFilter = filter;
+                                    _filterEvents();
+                                  },
+                                  backgroundColor: Colors.white.withOpacity(
+                                    0.9,
+                                  ),
+                                  selectedColor: CarnivalTheme.yellow,
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? CarnivalTheme.deepPurple
+                                        : CarnivalTheme.purple,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? CarnivalTheme.yellow
+                                          : CarnivalTheme.purple.withOpacity(
+                                              0.3,
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    // Sync status row
-                    GestureDetector(
-                      onTap: _showSyncInfo,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_syncManager.isSyncing)
-                              const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            else
-                              Icon(
-                                _syncManager.status == SyncStatus.error
-                                    ? Icons.error_outline
-                                    : _syncManager.status == SyncStatus.offline
-                                        ? Icons.cloud_off
-                                        : Icons.cloud_done,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _syncManager.isSyncing
-                                  ? 'Sincronizando...'
-                                  : _syncManager.lastSyncFormatted,
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.info_outline,
-                              size: 14,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                          ],
-                        ),
-                      ),
+                  ),
+                  // Events count and next sync
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Blocos de Rua 2026',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Search bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        onChanged: (value) {
-                          _searchQuery = value;
-                          _filterEvents();
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Buscar blocos...',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: CarnivalTheme.purple.withOpacity(0.6),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              Icons.refresh,
-                              color: _syncManager.isSyncing
-                                  ? Colors.grey[300]
-                                  : CarnivalTheme.purple.withOpacity(0.6),
-                            ),
-                            onPressed:
-                                _syncManager.isSyncing ? null : _refreshData,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Filter chips
-                    SizedBox(
-                      height: 40,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _filters.length,
-                        itemBuilder: (context, index) {
-                          final filter = _filters[index];
-                          final isSelected = _selectedFilter == filter;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FilterChip(
-                              label: Text(filter),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                _selectedFilter = filter;
-                                _filterEvents();
-                              },
-                              backgroundColor: Colors.white.withOpacity(0.9),
-                              selectedColor: CarnivalTheme.yellow,
-                              labelStyle: TextStyle(
-                                color: isSelected
-                                    ? CarnivalTheme.deepPurple
-                                    : CarnivalTheme.purple,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? CarnivalTheme.yellow
-                                      : CarnivalTheme.purple.withOpacity(0.3),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Events count and next sync
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        '${_filteredEvents.length} blocos encontrados',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (_syncManager.needsSync && !_syncManager.isSyncing)
-                      GestureDetector(
-                        onTap: _refreshData,
-                        child: Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                            horizontal: 12,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: CarnivalTheme.orange.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(15),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.update,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Atualizar',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              // Events list
-              Expanded(
-                child: _syncManager.isLoading && _filteredEvents.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const CircularProgressIndicator(
+                          child: Text(
+                            '${_filteredEvents.length} blocos encontrados',
+                            style: const TextStyle(
                               color: Colors.white,
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Carregando blocos...',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: Colors.white,
+                          ),
+                        ),
+                        if (_syncManager.needsSync && !_syncManager.isSyncing)
+                          GestureDetector(
+                            onTap: _refreshData,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: CarnivalTheme.orange.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.update,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Atualizar',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      )
-                    : _filteredEvents.isEmpty
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Events list
+                  Expanded(
+                    child: _syncManager.isLoading && _filteredEvents.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Carregando blocos...',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _filteredEvents.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -613,45 +668,65 @@ class _HomeScreenState extends State<HomeScreen>
                               itemBuilder: (context, index) {
                                 final event = _filteredEvents[index];
                                 return SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(1, 0),
-                                    end: Offset.zero,
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: _animationController,
-                                      curve: Interval(
-                                        (index / _filteredEvents.length) * 0.5,
-                                        ((index + 1) / _filteredEvents.length) *
-                                                0.5 +
-                                            0.5,
-                                        curve: Curves.easeOutCubic,
+                                  position:
+                                      Tween<Offset>(
+                                        begin: const Offset(1, 0),
+                                        end: Offset.zero,
+                                      ).animate(
+                                        CurvedAnimation(
+                                          parent: _animationController,
+                                          curve: Interval(
+                                            (index / _filteredEvents.length) *
+                                                0.5,
+                                            ((index + 1) /
+                                                        _filteredEvents
+                                                            .length) *
+                                                    0.5 +
+                                                0.5,
+                                            curve: Curves.easeOutCubic,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
                                   child: EventCard(
                                     event: event,
+                                    distanceText: _eventDistances[event.id],
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         PageRouteBuilder(
-                                          pageBuilder: (context, animation,
-                                                  secondaryAnimation) =>
-                                              EventDetailScreen(event: event),
-                                          transitionsBuilder: (context,
-                                              animation,
-                                              secondaryAnimation,
-                                              child) {
-                                            return SlideTransition(
-                                              position: Tween<Offset>(
-                                                begin: const Offset(1, 0),
-                                                end: Offset.zero,
-                                              ).animate(CurvedAnimation(
-                                                parent: animation,
-                                                curve: Curves.easeOutCubic,
-                                              )),
-                                              child: child,
-                                            );
-                                          },
+                                          pageBuilder:
+                                              (
+                                                context,
+                                                animation,
+                                                secondaryAnimation,
+                                              ) => EventDetailScreen(
+                                                event: event,
+                                              ),
+                                          transitionsBuilder:
+                                              (
+                                                context,
+                                                animation,
+                                                secondaryAnimation,
+                                                child,
+                                              ) {
+                                                return SlideTransition(
+                                                  position:
+                                                      Tween<Offset>(
+                                                        begin: const Offset(
+                                                          1,
+                                                          0,
+                                                        ),
+                                                        end: Offset.zero,
+                                                      ).animate(
+                                                        CurvedAnimation(
+                                                          parent: animation,
+                                                          curve: Curves
+                                                              .easeOutCubic,
+                                                        ),
+                                                      ),
+                                                  child: child,
+                                                );
+                                              },
                                         ),
                                       );
                                     },
@@ -660,10 +735,22 @@ class _HomeScreenState extends State<HomeScreen>
                               },
                             ),
                           ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Full-screen sync modal overlay
+          if (_showSyncModal)
+            SyncModal(
+              status: _syncManager.status,
+              onDismiss: () {
+                // Force refresh to dismiss modal
+                setState(() {});
+              },
+            ),
+        ],
       ),
     );
   }

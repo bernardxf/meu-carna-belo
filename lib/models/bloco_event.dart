@@ -69,4 +69,35 @@ class BlocoEvent {
     final encodedAddress = Uri.encodeComponent('$address, $neighborhood, Belo Horizonte, MG');
     return 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
   }
+
+  /// Create a copy of this event with updated coordinates
+  BlocoEvent copyWith({
+    String? id,
+    String? name,
+    DateTime? dateTime,
+    String? description,
+    String? address,
+    String? neighborhood,
+    String? ticketPrice,
+    String? ticketUrl,
+    double? latitude,
+    double? longitude,
+    String? imageUrl,
+    List<String>? tags,
+  }) {
+    return BlocoEvent(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      dateTime: dateTime ?? this.dateTime,
+      description: description ?? this.description,
+      address: address ?? this.address,
+      neighborhood: neighborhood ?? this.neighborhood,
+      ticketPrice: ticketPrice ?? this.ticketPrice,
+      ticketUrl: ticketUrl ?? this.ticketUrl,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      imageUrl: imageUrl ?? this.imageUrl,
+      tags: tags ?? this.tags,
+    );
+  }
 }
