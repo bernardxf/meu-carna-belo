@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/home_screen.dart';
 import 'theme/carnival_theme.dart';
@@ -139,23 +140,20 @@ class _SplashScreenState extends State<SplashScreen>
                               CarnivalTheme.yellow,
                             ],
                           ).createShader(bounds),
-                          child: const Text(
-                            'Meu Carna BH',
-                            style: TextStyle(
-                              fontFamily: 'Pacifico',
-                              fontSize: 42,
-                              fontWeight: FontWeight.bold,
+                          child: Text(
+                            'Meu Carna\nBH',
+                            style: GoogleFonts.pacifico(
+                              fontSize: 46,
                               color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  offset: const Offset(2, 2),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          'Belo Horizonte',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
-                            letterSpacing: 2,
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],

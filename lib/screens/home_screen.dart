@@ -304,12 +304,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Fonte: Vou Pro Bloco 2026',
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
         ],
       ),
     );
@@ -460,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
@@ -495,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen>
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
-                                vertical: 15,
+                                vertical: 10,
                               ),
                             ),
                           ),

@@ -23,9 +23,7 @@ class EventDetailScreen extends StatelessWidget {
 
   Future<void> _openGoogleMaps() async {
     final url = Uri.parse(_directionsUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
+    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _shareEvent() async {
@@ -33,7 +31,7 @@ class EventDetailScreen extends StatelessWidget {
         '''${event.name}
 
 ${event.formattedDate} as ${event.formattedTime}
-${event.address}, ${event.neighborhood}
+${event.address}
 
 ${event.description}
 
@@ -104,13 +102,14 @@ Veja mais blocos no Meu Carna BH!''';
               // Content
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.only(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
@@ -121,31 +120,14 @@ Veja mais blocos no Meu Carna BH!''';
                   ),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Decorative element
-                          Center(
-                            child: Container(
-                              width: 50,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    CarnivalTheme.purple,
-                                    CarnivalTheme.pink,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
                           // Event name
                           Row(
                             children: [
@@ -396,7 +378,6 @@ Veja mais blocos no Meu Carna BH!''';
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 24),
                         ],
                       ),
                     ),

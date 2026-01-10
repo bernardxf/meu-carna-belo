@@ -26,10 +26,7 @@ class CarnivalTheme {
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFFFFFFF),
-      Color(0xFFFFF8E1),
-    ],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFF8E1)],
   );
 
   static const LinearGradient buttonGradient = LinearGradient(
@@ -90,14 +87,8 @@ class CarnivalTheme {
           fontWeight: FontWeight.w500,
           color: Colors.grey[800],
         ),
-        bodyLarge: GoogleFonts.poppins(
-          fontSize: 16,
-          color: Colors.grey[700],
-        ),
-        bodyMedium: GoogleFonts.poppins(
-          fontSize: 14,
-          color: Colors.grey[600],
-        ),
+        bodyLarge: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+        bodyMedium: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -113,9 +104,7 @@ class CarnivalTheme {
       cardTheme: CardThemeData(
         elevation: 8,
         shadowColor: purple.withAlpha(77),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -123,7 +112,7 @@ class CarnivalTheme {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(20),
           ),
           elevation: 4,
         ),
@@ -155,10 +144,7 @@ class ConfettiPainter extends CustomPainter {
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(
-        Offset(
-          positions[i].dx * size.width,
-          positions[i].dy * size.height,
-        ),
+        Offset(positions[i].dx * size.width, positions[i].dy * size.height),
         sizes[i % sizes.length],
         paint,
       );
